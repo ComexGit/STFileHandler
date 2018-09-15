@@ -42,63 +42,87 @@ static char *queueName = "fileManagerQueue";
 
 - (NSData *)readFile:(NSString *)path
 {
+    if(![[NSFileManager defaultManager] fileExistsAtPath:path]){
+        NSLog(@"File is not exist.");
+        return nil;
+    }
+    
     __block NSData *data;
     dispatch_sync(_queue, ^{
-        if([[NSFileManager defaultManager] fileExistsAtPath:path]){
-            data = [[NSFileManager defaultManager] contentsAtPath:path];
-        }
+        NSFileHandle *fileHandle = [NSFileHandle fileHandleForReadingAtPath:path];
+        data = [fileHandle readDataToEndOfFile];
+        [fileHandle closeFile];
     });
     return data;
 }
 
 - (void)readFileAsync:(NSString *)path complete:(void (^)(NSData *data))complete
 {
+    if(![[NSFileManager defaultManager] fileExistsAtPath:path]){
+        NSLog(@"File is not exist.");
+        if (complete) {
+            complete(nil);
+        }
+    }
+    
     dispatch_async(_queue, ^{
         NSData *data = nil;
-        
-        if([[NSFileManager defaultManager] fileExistsAtPath:path]){
-            data = [[NSFileManager defaultManager] contentsAtPath:path];
-        }
+    
+        NSFileHandle *fileHandle = [NSFileHandle fileHandleForReadingAtPath:path];
+        data = [fileHandle readDataToEndOfFile];
         
         if (complete) {
             complete(data);
+            [fileHandle closeFile];
         }
     });
 }
 
-- (BOOL)writeFile:(NSString *)path data:(NSData *)data
+- (void)writeFile:(NSString *)path data:(NSData *)data
 {
-    __block BOOL result = NO;
+    NSFileManager *fileManager = [NSFileManager defaultManager];
+    if(![fileManager fileExistsAtPath:path]){
+         [fileManager createFileAtPath:path contents:nil attributes:nil];
+    }
+    
     dispatch_barrier_sync(_queue, ^{
-        NSFileManager *fileManager = [NSFileManager defaultManager];
-        if([fileManager fileExistsAtPath:path]){
-            [fileManager removeItemAtPath:path error:nil];
-        }
         
-        result = [[NSFileManager defaultManager] createFileAtPath:path contents:data attributes:nil];
+        NSFileHandle *fileHandle = [NSFileHandle fileHandleForWritingAtPath:path];
         
+        [fileHandle seekToEndOfFile];
+        [fileHandle writeData:data];
         
-        NSLog(@"写文件：");
+        [fileHandle synchronizeFile];
+        [fileHandle closeFile];
+        
+        NSLog(@"----Writing success. current thread:%@----Date:%@", [NSThread currentThread], [NSDate date]);
     });
-    return result;
 }
 
 - (void)writeFileAsync:(NSString *)path data:(NSData *)data complete:(void (^)(BOOL result))complete
 {
+    NSFileManager *fileManager = [NSFileManager defaultManager];
+    if(![fileManager fileExistsAtPath:path]){
+        [fileManager createFileAtPath:path contents:nil attributes:nil];
+    }
+    
     __block BOOL result = NO;
     dispatch_barrier_async(_queue, ^{
-        NSFileManager *fileManager = [NSFileManager defaultManager];
-        if([fileManager fileExistsAtPath:path]){
-            [fileManager removeItemAtPath:path error:nil];
-        }
         
-        result = [[NSFileManager defaultManager] createFileAtPath:path contents:data attributes:nil];
+        NSFileHandle *fileHandle = [NSFileHandle fileHandleForWritingAtPath:path];
+        
+        [fileHandle seekToEndOfFile];
+        [fileHandle writeData:data];
+        
+        [fileHandle synchronizeFile];
+        [fileHandle closeFile];
+        
+        NSLog(@"----Writing success. current thread:%@----Date:%@", [NSThread currentThread], [NSDate date]);
         
         if (complete) {
             complete(result);
         }
     });
-    
 }
 
 @end

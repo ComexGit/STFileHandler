@@ -15,10 +15,7 @@
 - (NSData *)readFile:(NSString *)path;
 - (void)readFileAsync:(NSString *)path complete:(void (^)(NSData *data))complete;
 
-- (BOOL)writeFile:(NSString *)path data:(NSData *)data;
+- (void)writeFile:(NSString *)path data:(NSData *)data;
 - (void)writeFileAsync:(NSString *)path data:(NSData *)data complete:(void (^)(BOOL result))complete;   
-
-
-//文件读写，拷贝
 
 @end
