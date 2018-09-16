@@ -39,14 +39,14 @@
 - (void)barrier {
     dispatch_queue_t queue = dispatch_queue_create("net.bujige.testQueue", DISPATCH_QUEUE_CONCURRENT);
     
-    dispatch_async(queue, ^{
+    dispatch_barrier_async(queue, ^{
         // 追加任务1
         for (int i = 0; i < 2; ++i) {
             [NSThread sleepForTimeInterval:2];              // 模拟耗时操作
             NSLog(@"1---%@",[NSThread currentThread]);      // 打印当前线程
         }
     });
-    dispatch_async(queue, ^{
+    dispatch_barrier_async(queue, ^{
         // 追加任务2
         for (int i = 0; i < 2; ++i) {
             [NSThread sleepForTimeInterval:2];              // 模拟耗时操作
@@ -54,7 +54,7 @@
         }
     });
     
-    dispatch_barrier_sync(queue, ^{
+    dispatch_barrier_async(queue, ^{
         // 追加任务 barrier
         for (int i = 0; i < 2; ++i) {
             [NSThread sleepForTimeInterval:2];              // 模拟耗时操作
@@ -62,7 +62,7 @@
         }
     });
     
-    dispatch_async(queue, ^{
+    dispatch_barrier_async(queue, ^{
         // 追加任务3
         for (int i = 0; i < 2; ++i) {
             [NSThread sleepForTimeInterval:2];              // 模拟耗时操作
